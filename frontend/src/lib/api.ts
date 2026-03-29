@@ -124,4 +124,67 @@ export const adminApi = {
   // Import
   importStatus: () => apiFetch<{ total: number; matched: number; pending: number; unmatched: number }>('/admin/import'),
   squads: () => apiFetch<{ squads: InternalSquad[]; total: number }>('/admin/squads'),
+
+  // ── v2: News ──
+  news:       () => apiFetch<any[]>('/admin/news'),
+  createNews: (data: any) => apiFetch<any>('/admin/news', { method: 'POST', body: JSON.stringify(data) }),
+  updateNews: (id: string, data: any) => apiFetch<any>(`/admin/news/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  deleteNews: (id: string) => apiFetch<void>(`/admin/news/${id}`, { method: 'DELETE' }),
+
+  // ── v2: Promos ──
+  promos:       () => apiFetch<any[]>('/admin/promos'),
+  createPromo:  (data: any) => apiFetch<any>('/admin/promos', { method: 'POST', body: JSON.stringify(data) }),
+  updatePromo:  (id: string, data: any) => apiFetch<any>(`/admin/promos/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  deletePromo:  (id: string) => apiFetch<void>(`/admin/promos/${id}`, { method: 'DELETE' }),
+
+  // ── v2: Proxies ──
+  proxies:       () => apiFetch<any[]>('/admin/proxies'),
+  createProxy:   (data: any) => apiFetch<any>('/admin/proxies', { method: 'POST', body: JSON.stringify(data) }),
+  updateProxy:   (id: string, data: any) => apiFetch<any>(`/admin/proxies/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  deleteProxy:   (id: string) => apiFetch<void>(`/admin/proxies/${id}`, { method: 'DELETE' }),
+
+  // ── v2: Notifications ──
+  sendNotification: (data: any) => apiFetch<any>('/admin/notifications', { method: 'POST', body: JSON.stringify(data) }),
+  notificationsList: (page = 1) => apiFetch<{ notifications: any[]; total: number }>(`/admin/notifications?page=${page}`),
+
+  // ── v2: User REMNAWAVE actions ──
+  disableUserRW:  (id: string) => apiFetch<{ ok: boolean }>(`/admin/users/${id}/disable-rw`, { method: 'POST' }),
+  resetTraffic:   (id: string) => apiFetch<{ ok: boolean }>(`/admin/users/${id}/reset-traffic`, { method: 'POST' }),
+  revokeUser:     (id: string) => apiFetch<{ ok: boolean; newSubUrl?: string }>(`/admin/users/${id}/revoke`, { method: 'POST' }),
+  updateSubLink:  (id: string, subLink: string) => apiFetch<{ ok: boolean }>(`/admin/users/${id}/sub-link`, { method: 'PUT', body: JSON.stringify({ subLink }) }),
+  deleteUser:     (id: string) => apiFetch<{ ok: boolean }>(`/admin/users/${id}/delete`, { method: 'DELETE' }),
+  getUserRW:      (id: string) => apiFetch<{ data: any; devices?: any }>(`/admin/users/${id}/remnawave`),
+  adjustBalance:  (id: string, amount: number, description?: string) =>
+    apiFetch<{ ok: boolean }>(`/admin/users/${id}/balance`, { method: 'POST', body: JSON.stringify({ amount, description }) }),
+
+  // ── v2: Notes ──
+  getUserNotes:  (userId: string) => apiFetch<any[]>(`/admin/users/${userId}/notes`),
+  addUserNote:   (userId: string, content: string) =>
+    apiFetch<any>(`/admin/users/${userId}/notes`, { method: 'POST', body: JSON.stringify({ content }) }),
+  deleteNote:    (id: string) => apiFetch<void>(`/admin/notes/${id}`, { method: 'DELETE' }),
+
+  // ── v2: Audit log ──
+  auditLog: (page = 1, action?: string) => {
+    const q = new URLSearchParams({ page: String(page), ...(action ? { action } : {}) })
+    return apiFetch<{ logs: any[]; total: number }>(`/admin/audit-log?${q}`)
+  },
+
+  // ── v2: REMNAWAVE system ──
+  rwHealth: () => apiFetch<any>('/admin/remnawave/health'),
+  rwNodes:  () => apiFetch<any>('/admin/remnawave/nodes'),
+
+  // ── v2: Gifts ──
+  gifts: () => apiFetch<any[]>('/admin/gifts'),
+}
+
+// ── User v2 ───────────────────────────────────────────────────
+export const userV2Api = {
+  notifications:    () => apiFetch<{ notifications: any[]; unread: number }>('/user/notifications'),
+  readNotification: (id: string) => apiFetch<any>(`/user/notifications/${id}/read`, { method: 'POST' }),
+  readAllNotifs:    () => apiFetch<any>('/user/notifications/read-all', { method: 'POST' }),
+  balance:          () => apiFetch<{ balance: number; transactions: any[] }>('/user/balance'),
+  activateTrial:    () => apiFetch<{ ok: boolean; subUrl: string; expireAt: string }>('/user/activate-trial', { method: 'POST' }),
+  createGift:       (data: any) => apiFetch<{ ok: boolean; giftCode: string; giftUrl: string }>('/user/gifts', { method: 'POST', body: JSON.stringify(data) }),
+  myGifts:          () => apiFetch<any[]>('/user/gifts'),
+  revokeSubscription: () => apiFetch<{ ok: boolean; newSubUrl?: string }>('/user/revoke-subscription', { method: 'POST' }),
 }

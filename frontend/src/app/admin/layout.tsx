@@ -7,6 +7,7 @@ import {
   Shield, LayoutDashboard, Users, CreditCard,
   Settings, BookOpen, LogOut, Menu, X,
   Package, TrendingUp, ChevronRight, Upload,
+  Newspaper, Megaphone, Globe2, ClipboardList, Gift,
 } from 'lucide-react'
 
 const NAV = [
@@ -15,7 +16,11 @@ const NAV = [
   { href: '/admin/payments',     icon: CreditCard,      label: 'Платежи' },
   { href: '/admin/tariffs',      icon: Package,         label: 'Тарифы' },
   { href: '/admin/instructions', icon: BookOpen,        label: 'Инструкции' },
+  { href: '/admin/news',         icon: Newspaper,       label: 'Новости' },
+  { href: '/admin/promos',       icon: Megaphone,       label: 'Акции' },
+  { href: '/admin/proxies',      icon: Globe2,          label: 'Прокси' },
   { href: '/admin/analytics',    icon: TrendingUp,      label: 'Аналитика' },
+  { href: '/admin/audit',        icon: ClipboardList,   label: 'Журнал' },
   { href: '/admin/import',       icon: Upload,          label: 'Импорт' },
   { href: '/admin/settings',     icon: Settings,        label: 'Настройки' },
 ]

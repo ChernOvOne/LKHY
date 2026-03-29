@@ -353,6 +353,28 @@ class RemnawaveService {
     })
     return { user, created: true }
   }
+
+  // Alias
+  async getUser(uuid: string): Promise<RemnawaveUser> {
+    return this.getUserByUuid(uuid)
+  }
+
+  // Delete user from REMNAWAVE
+  async deleteUser(uuid: string): Promise<void> {
+    await this.client.delete(`/api/users/${uuid}`)
+  }
+
+  // System health (PM2 stats)
+  async getHealth(): Promise<any> {
+    const r = await this.client.get('/api/system/health')
+    return this.unwrap(r.data)
+  }
+
+  // Nodes metrics
+  async getNodesMetrics(): Promise<any> {
+    const r = await this.client.get('/api/system/nodes/metrics')
+    return this.unwrap(r.data)
+  }
 }
 
 export const remnawave = new RemnawaveService()
