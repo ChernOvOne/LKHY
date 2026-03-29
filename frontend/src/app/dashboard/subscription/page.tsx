@@ -1,5 +1,9 @@
-import SubscriptionContent from './subscription'
+'use client'
+import { useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 
-export default function SubscriptionPage() {
-  return <SubscriptionContent />
+export default function RedirectPage() {
+  const router = useRouter()
+  useEffect(() => { router.replace('/dashboard') }, [router])
+  return null
 }
