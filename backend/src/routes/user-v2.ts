@@ -5,10 +5,8 @@ import { logger }    from '../utils/logger'
 import { randomBytes } from 'crypto'
 
 export async function userV2Routes(app: FastifyInstance) {
-  // All routes require auth
-  app.addHook('preHandler', async (req) => {
-    if (!(req.user as any)) throw app.httpErrors.unauthorized()
-  })
+  // All routes require auth — runs jwtVerify and populates req.user
+  app.addHook('preHandler', app.authenticate)
 
   // ═══════════════════════════════════════════════════════════
   //  NOTIFICATIONS

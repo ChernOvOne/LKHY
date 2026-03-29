@@ -11,12 +11,8 @@ async function audit(adminId: string, action: string, targetType?: string, targe
 }
 
 export async function adminV2Routes(app: FastifyInstance) {
-  // All routes require admin
-  app.addHook('preHandler', async (req) => {
-    if (!(req.user as any) || ((req.user as any)?.role) !== 'ADMIN') {
-      throw app.httpErrors.forbidden('Admin access required')
-    }
-  })
+  // All routes require admin — runs jwtVerify, populates req.user, checks ADMIN role
+  app.addHook('preHandler', app.adminOnly)
 
   // ═══════════════════════════════════════════════════════════
   //  NEWS CRUD
