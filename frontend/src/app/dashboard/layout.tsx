@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import {
-  Shield, LogOut, Menu, X, Users, Zap, Settings,
+  Shield, LogOut, Menu, X, Settings, Bell,
 } from 'lucide-react'
 
 interface User {
@@ -17,11 +17,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [user, setUser]         = useState<User | null>(null)
   const [loading, setLoading]   = useState(true)
   const [menuOpen, setMenuOpen] = useState(false)
+  const [unread, setUnread]     = useState(0)
 
   useEffect(() => {
     fetch('/api/auth/me', { credentials: 'include' })
       .then(r => { if (!r.ok) throw new Error(); return r.json() })
-      .then(setUser)
+      .then(u => {
+        setUser(u)
+        // Fetch unread notifications count
+        fetch('/api/user/notifications', { credentials: 'include' })
+          .then(r => r.ok ? r.json() : { unread: 0 })
+          .then(d => setUnread(d.unread || 0))
+          .catch(() => {})
+      })
       .catch(() => router.push('/login'))
       .finally(() => setLoading(false))
   }, [router])
@@ -78,6 +86,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
           {/* Right actions */}
           <div className="flex items-center gap-1">
+            <button className="p-2 rounded-lg transition-colors hover:bg-white/5 relative"
+                    style={{ color: 'var(--text-tertiary)' }} title="Уведомления"
+                    onClick={() => window.dispatchEvent(new CustomEvent('toggle-notifications'))}>
+              <Bell className="w-4 h-4" />
+              {unread > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold text-white"
+                      style={{ background: 'var(--accent-gradient)', fontSize: '9px' }}>
+                  {unread > 9 ? '9+' : unread}
+                </span>
+              )}
+            </button>
             {user.role === 'ADMIN' && (
               <Link href="/admin" className="p-2 rounded-lg transition-colors hover:bg-white/5"
                     style={{ color: 'var(--text-tertiary)' }} title="Админ-панель">
