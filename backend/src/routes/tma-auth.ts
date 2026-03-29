@@ -94,8 +94,8 @@ export async function tmaAuthRoute(app: FastifyInstance) {
     return reply
       .setCookie('token', token, {
         httpOnly: true,
-        secure:   config.isProd,
-        sameSite: config.isProd ? 'none' : 'lax', // 'none' required for TMA
+        secure:   req.protocol === 'https',
+        sameSite: req.protocol === 'https' ? 'none' : 'lax', // 'none' required for TMA over HTTPS
         maxAge:   30 * 24 * 3600,
         path:     '/',
         domain:   config.isProd ? config.cookieDomain : undefined,

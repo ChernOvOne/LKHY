@@ -24,10 +24,14 @@ const EmailLoginSchema = z.object({
 
 // Опции куки — domain берётся из корневого домена, чтобы работало
 // и на lk.example.com и на admin.example.com одновременно.
-function cookieOpts() {
+// secure определяется динамически: Fastify имеет trustProxy=true, поэтому
+// req.protocol отражает X-Forwarded-Proto от nginx. На HTTP-деплое — false,
+// на HTTPS-деплое (после настройки SSL) — true автоматически.
+function cookieOpts(req: any) {
+  const isHttps = req.protocol === 'https'
   return {
     httpOnly: true,
-    secure:   config.isProd,
+    secure:   isHttps,
     sameSite: 'lax' as const,
     maxAge:   30 * 24 * 3600,
     path:     '/',
@@ -92,7 +96,7 @@ export async function authRoutes(app: FastifyInstance) {
     const { passwordHash, ...safeUser } = user as any
 
     return reply
-      .setCookie('token', token, cookieOpts())
+      .setCookie('token', token, cookieOpts(req))
       .send({ token, user: safeUser })
   })
 
@@ -133,7 +137,7 @@ export async function authRoutes(app: FastifyInstance) {
     const { passwordHash, ...safeUser } = user as any
 
     return reply
-      .setCookie('token', token, cookieOpts())
+      .setCookie('token', token, cookieOpts(req))
       .send({ token, user: safeUser })
   })
 
