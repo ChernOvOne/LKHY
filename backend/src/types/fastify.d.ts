@@ -1,4 +1,5 @@
 import '@fastify/jwt'
+import '@fastify/sensible'
 import 'fastify'
 
 declare module 'fastify' {

@@ -1,4 +1,5 @@
 import type { FastifyInstance } from 'fastify'
+import fastifySensible  from '@fastify/sensible'
 import fastifyCookie    from '@fastify/cookie'
 import fastifyJwt       from '@fastify/jwt'
 import fastifyCors      from '@fastify/cors'
@@ -9,6 +10,9 @@ import { securityPlugin } from './security'
 import { config }         from '../config'
 
 export async function registerPlugins(app: FastifyInstance) {
+  // ── Sensible (httpErrors, etc.) ──────────────────────────
+  await app.register(fastifySensible)
+
   // ── Security headers ─────────────────────────────────────
   await app.register(securityPlugin)
 
