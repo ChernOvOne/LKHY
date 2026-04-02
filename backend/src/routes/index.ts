@@ -20,6 +20,7 @@ import { adminPromoRoutes, userPromoRoutes } from './promo'
 import { adminBotRoutes }     from './admin-bot'
 import { adminBroadcastRoutes } from './admin-broadcast'
 import { adminFunnelRoutes }    from './admin-funnels'
+import { adminBotBlockRoutes } from './admin-bot-blocks'
 
 export async function registerRoutes(app: FastifyInstance) {
   app.get('/health', async () => ({
@@ -63,6 +64,7 @@ export async function registerRoutes(app: FastifyInstance) {
   await app.register(adminBotRoutes,            { prefix: '/api/admin/bot'           })
   await app.register(adminBroadcastRoutes,     { prefix: '/api/admin/broadcast'     })
   await app.register(adminFunnelRoutes,        { prefix: '/api/admin/communications'})
+  await app.register(adminBotBlockRoutes,     { prefix: '/api/admin/bot-blocks'    })
   await app.register(uploadRoutes,             { prefix: '/api/admin'               })
 
   // Serve uploaded files

@@ -1464,7 +1464,7 @@ const CATEGORIES = [
   { id: 'custom', label: 'Кастомные', range: [1100, 9999] },
 ]
 
-const BOT_BTN_OPTIONS = [
+const BOT_BTN_OPTIONS_DEFAULT = [
   { label: '💳 Тарифы', value: 'menu:tariffs' },
   { label: '🔑 Подписка', value: 'menu:subscription' },
   { label: '📖 Инструкции', value: 'menu:instructions' },
@@ -1522,6 +1522,7 @@ const funnelApi = (path: string, opts?: RequestInit) =>
 function FunnelsTab() {
   const [funnels, setFunnels] = useState<FunnelConfig[]>([])
   const [triggerOptions, setTriggerOptions] = useState<any[]>([])
+  const [botBlocks, setBotBlocks] = useState<{id:string;name:string;type:string}[]>([])
   const [loading, setLoading] = useState(true)
   const [savingId, setSavingId] = useState<string | null>(null)
   const [testingId, setTestingId] = useState<string | null>(null)
@@ -1531,12 +1532,25 @@ function FunnelsTab() {
   const [newTriggerId, setNewTriggerId] = useState('')
   const [newName, setNewName] = useState('')
 
+  // Build BOT_BTN_OPTIONS with blocks from constructor
+  const BOT_BTN_OPTIONS = [
+    ...BOT_BTN_OPTIONS_DEFAULT,
+    ...botBlocks
+      .filter(b => b.type === 'MESSAGE')
+      .map(b => ({ label: `🧱 ${b.name}`, value: `blk:${b.id}` })),
+  ]
+
   const load = useCallback(async () => {
     setLoading(true)
     try {
       const [f, t] = await Promise.all([funnelApi('/funnels'), funnelApi('/triggers').catch(() => [])])
       setFunnels(f)
       setTriggerOptions(t)
+      // Load bot blocks for button dropdown
+      try {
+        const bl = await fetch('/api/admin/bot-blocks/blocks-list', { credentials: 'include' }).then(r => r.json())
+        setBotBlocks(bl)
+      } catch {}
     } catch { toast.error('Не удалось загрузить воронки') }
     finally { setLoading(false) }
   }, [])

@@ -56,6 +56,8 @@ model User {
   emailVerifications EmailVerification[]
   promoUsages        PromoUsage[]
   botMessages        BotMessage[]
+  userTags           UserTag[]
+  userVariables      UserVariable[]
 
   @@map("users")
 }
@@ -600,6 +602,183 @@ model FunnelLog {
   @@map("funnel_logs")
 }
 
+// ── Bot Engine: No-Code Constructor ──────────────────────────
+
+model BotBlockGroup {
+  id        String     @id @default(uuid())
+  name      String                              // "Главное меню", "Тарифы", ...
+  icon      String?                             // emoji icon for sidebar
+  sortOrder Int        @default(0) @map("sort_order")
+  createdAt DateTime   @default(now()) @map("created_at")
+  updatedAt DateTime   @updatedAt @map("updated_at")
+  blocks    BotBlock[]
+
+  @@map("bot_block_groups")
+}
+
+model BotBlock {
+  id        String   @id @default(uuid())
+  name      String                              // admin label: "Приветствие"
+  groupId   String?  @map("group_id")
+  group     BotBlockGroup? @relation(fields: [groupId], references: [id], onDelete: SetNull)
+  type      BotBlockType                        // message|condition|action|input|delay|split|redirect|notify_admin|http|reaction
+
+  // ── Message fields ──
+  text         String?                          // message text with {variables}
+  mediaUrl     String?  @map("media_url")
+  mediaType    String?  @map("media_type")      // photo|video|document|animation|album
+  parseMode    String   @default("Markdown") @map("parse_mode")
+  pinMessage   Boolean  @default(false) @map("pin_message")
+
+  // ── Previous message behavior ──
+  deletePrev      String @default("none") @map("delete_prev") // none|buttons|full
+
+  // ── Reply keyboard (bottom) ──
+  replyKeyboard   Json?  @map("reply_keyboard")    // [{label, requestContact?, requestLocation?}]
+  removeReplyKb   Boolean @default(false) @map("remove_reply_kb")
+
+  // ── Condition fields ──
+  conditionType   String?  @map("condition_type")  // has_sub|no_sub|expired|traffic_80|has_tag|has_var|...
+  conditionValue  String?  @map("condition_value") // value for comparison (tag name, var value)
+  nextBlockTrue   String?  @map("next_block_true")
+  nextBlockFalse  String?  @map("next_block_false")
+
+  // ── Action fields ──
+  actionType   String?  @map("action_type")     // bonus_days|balance|promo_discount|promo_balance|trial|add_tag|remove_tag|set_var
+  actionValue  String?  @map("action_value")    // amount or value
+  nextBlockId  String?  @map("next_block_id")
+
+  // ── Input fields ──
+  inputPrompt  String?  @map("input_prompt")
+  inputVar     String?  @map("input_var")       // save user response to variable
+  inputValidation String? @map("input_validation") // email|phone|number|text
+
+  // ── Delay fields ──
+  delayMinutes Int?     @map("delay_minutes")
+
+  // ── Split (A/B test) ──
+  splitVariants Json?   @map("split_variants")  // [{blockId, weight}]
+
+  // ── Redirect ──
+  redirectBlockId String? @map("redirect_block_id")
+
+  // ── Reaction ──
+  reactionEmoji String? @map("reaction_emoji")  // 👍🔥❤️✅
+
+  // ── Notify Admin ──
+  notifyAdminText String? @map("notify_admin_text")
+
+  // ── HTTP Request ──
+  httpMethod   String?  @map("http_method")     // GET|POST
+  httpUrl      String?  @map("http_url")
+  httpHeaders  Json?    @map("http_headers")
+  httpBody     String?  @map("http_body")
+  httpSaveVar  String?  @map("http_save_var")   // save response to variable
+
+  // ── Throttle ──
+  throttleMinutes Int?  @map("throttle_minutes") // show max once per N minutes
+
+  // ── Schedule ──
+  scheduleStart  String? @map("schedule_start")  // "09:00"
+  scheduleEnd    String? @map("schedule_end")    // "21:00"
+  scheduleDays   Json?   @map("schedule_days")   // [1,2,3,4,5] (weekdays)
+  scheduleBlockId String? @map("schedule_block_id") // fallback block if outside schedule
+
+  // ── Versioning ──
+  isDraft    Boolean  @default(false) @map("is_draft")
+  version    Int      @default(1)
+  publishedAt DateTime? @map("published_at")
+
+  sortOrder  Int      @default(0) @map("sort_order")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  buttons    BotButton[]
+  triggers   BotTrigger[]
+  stats      BotBlockStat[]
+
+  @@index([groupId])
+  @@index([type])
+  @@map("bot_blocks")
+}
+
+model BotButton {
+  id           String   @id @default(uuid())
+  blockId      String   @map("block_id")
+  block        BotBlock @relation(fields: [blockId], references: [id], onDelete: Cascade)
+  label        String                           // button text with emoji
+  type         String                           // block|url|webapp|contact|location
+  nextBlockId  String?  @map("next_block_id")   // for type=block
+  url          String?                          // for type=url|webapp
+  row          Int      @default(0)             // button row position
+  col          Int      @default(0)             // button col position
+  sortOrder    Int      @default(0) @map("sort_order")
+
+  // Stats
+  clickCount   Int      @default(0) @map("click_count")
+
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  @@index([blockId])
+  @@map("bot_buttons")
+}
+
+model BotTrigger {
+  id       String   @id @default(uuid())
+  type     String                              // command|text|event
+  value    String                              // "/start", "payment_success", regex
+  blockId  String   @map("block_id")
+  block    BotBlock @relation(fields: [blockId], references: [id], onDelete: Cascade)
+  priority Int      @default(0)                // higher = checked first
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([type, value])
+  @@index([type])
+  @@map("bot_triggers")
+}
+
+model BotBlockStat {
+  id        String   @id @default(uuid())
+  blockId   String   @map("block_id")
+  block     BotBlock @relation(fields: [blockId], references: [id], onDelete: Cascade)
+  date      DateTime @default(now()) @db.Date
+  views     Int      @default(0)
+  clicks    Int      @default(0)
+
+  @@unique([blockId, date])
+  @@map("bot_block_stats")
+}
+
+// ── User Tags & Variables ───────────────────────────────────
+
+model UserTag {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tag       String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([userId, tag])
+  @@index([tag])
+  @@map("user_tags")
+}
+
+model UserVariable {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  key       String
+  value     String
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([userId, key])
+  @@index([key])
+  @@map("user_variables")
+}
+
 // ── Enums ────────────────────────────────────────────────────
 enum Role {
   USER
@@ -685,6 +864,19 @@ enum EmailVerificationType {
   REGISTRATION
   EMAIL_CHANGE
   PASSWORD_RESET
+}
+
+enum BotBlockType {
+  MESSAGE
+  CONDITION
+  ACTION
+  INPUT
+  DELAY
+  SPLIT
+  REDIRECT
+  NOTIFY_ADMIN
+  HTTP
+  REACTION
 }
 
 enum BroadcastStatus {

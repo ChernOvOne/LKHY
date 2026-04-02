@@ -6,6 +6,8 @@ import { prisma }         from '../db'
 import { remnawave }      from '../services/remnawave'
 import { balanceService } from '../services/balance'
 import { paymentService } from '../services/payment'
+import { executeBlock, loadBlockCache, invalidateBlockCache } from './engine'
+import { getUserState, clearUserState } from './state'
 
 // ── Redis for state management ───────────────────────────────
 const redis = new Redis(config.redis.url)
@@ -1166,6 +1168,50 @@ bot.callbackQuery(/^instr:app:([^:]+)$/, async (ctx) => {
 // ══════════════════════════════════════════════════════════════
 bot.on('message:text', async (ctx) => {
   const chatId = String(ctx.from.id)
+  const telegramId = String(ctx.from.id)
+
+  // ── Engine input state (from no-code blocks) ──
+  const engineState = await getUserState(telegramId).catch(() => null)
+  if (engineState?.waitingInput) {
+    const user = await ensureUser(telegramId)
+    if (user) {
+      const input = ctx.message.text.trim()
+
+      // Validate
+      if (engineState.inputValidation === 'email' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input)) {
+        await ctx.reply('❌ Введите корректный email.')
+        return
+      }
+      if (engineState.inputValidation === 'number' && isNaN(Number(input))) {
+        await ctx.reply('❌ Введите число.')
+        return
+      }
+
+      // Save variable
+      if (engineState.inputVar) {
+        await prisma.userVariable.upsert({
+          where: { userId_key: { userId: user.id, key: engineState.inputVar } },
+          create: { userId: user.id, key: engineState.inputVar, value: input },
+          update: { value: input },
+        })
+      }
+
+      await clearUserState(telegramId)
+
+      // Execute next block
+      if (engineState.nextBlockId) {
+        try {
+          await executeBlock(engineState.nextBlockId, ctx, user.id)
+        } catch (err) {
+          logger.warn('Engine next block error:', err)
+        }
+      } else {
+        await ctx.reply('✅ Принято!')
+      }
+      return
+    }
+  }
+
   const state = await redis.get(`bot:state:${chatId}`)
 
   if (state === 'awaiting_promo') {
@@ -1373,6 +1419,26 @@ bot.on('poll_answer', async (ctx) => {
   }
 })
 
+// ══════════════════════════════════════════════════════════════
+//  NO-CODE ENGINE — block callbacks (blk:blockId)
+// ══════════════════════════════════════════════════════════════
+bot.callbackQuery(/^blk:(.+)$/, async (ctx) => {
+  await ctx.answerCallbackQuery()
+  const blockId = ctx.match[1]
+  const telegramId = String(ctx.from.id)
+  const user = await ensureUser(telegramId)
+  if (!user) {
+    await ctx.reply('Нажмите /start для начала.', { reply_markup: backButton() })
+    return
+  }
+  try {
+    await executeBlock(blockId, ctx, user.id)
+  } catch (err) {
+    logger.warn(`Engine block ${blockId} error:`, err)
+    await ctx.reply('⚠️ Ошибка. Попробуйте позже.', { reply_markup: backButton() })
+  }
+})
+
 // ── Catch-all for unknown callbacks ──────────────────────────
 bot.on('callback_query:data', async (ctx) => {
   await ctx.answerCallbackQuery({ text: 'Неизвестное действие' })
@@ -1447,6 +1513,8 @@ export async function sendTelegramMessage(telegramId: string, text: string) {
 export async function startBot() {
   // Load bot messages from Settings table
   await loadBotSettings()
+  // Load no-code block cache
+  await loadBlockCache().catch(e => logger.warn('Failed to load block cache:', e))
 
   logger.info('Starting Telegram bot...')
   bot.catch((err) => logger.error('Bot error:', err))

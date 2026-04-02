@@ -88,6 +88,7 @@ services:
       - backend
     networks:
       - hideyou_internal
+      - hideyou_external
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:3000 || exit 1"]
       interval: 30s
